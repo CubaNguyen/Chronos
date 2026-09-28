@@ -1,0 +1,31 @@
+# Go
+core/bin/
+core/*.exe
+*.test
+
+# Rust
+parser/target/
+
+# Python
+ai/.venv/
+ai/__pycache__/
+ai/*.pyc
+ai/.pytest_cache/
+
+# Node
+web/node_modules/
+web/dist/
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Env
+.env
+*.local
+
+# OS
+.DS_Store
+Thumbs.db

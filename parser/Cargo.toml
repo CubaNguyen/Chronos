@@ -1,0 +1,37 @@
+[package]
+name = "chronos-parser"
+version = "0.1.0"
+edition = "2024"
+description = "Source code parser for Chronos — extracts AST from multiple languages"
+license = "MIT"
+
+[dependencies]
+# ─── Tree-sitter: parse code ───────────────────────────
+tree-sitter = "0.24"
+tree-sitter-go = "0.23"
+# tree-sitter-java = "0.23"    # TODO: bật sau khi Go xong
+# tree-sitter-python = "0.23"  # TODO: bật sau khi Go xong
+
+# ─── CLI ───────────────────────────────────────────────
+clap = { version = "4", features = ["derive"] }
+
+# ─── Serialization: in JSON ra stdout ──────────────────
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# ─── Error handling ────────────────────────────────────
+thiserror = "2"
+
+# ─── Hashing: SHA-256 cho file content ─────────────────
+sha2 = "0.10"
+
+# ─── Hex encoding cho hash ─────────────────────────────
+hex = "0.4"
+
+# ─── Logging (optional, dùng ở main.rs) ────────────────
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+[dev-dependencies]
+# Test helpers
+pretty_assertions = "1"
