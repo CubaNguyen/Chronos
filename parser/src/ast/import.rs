@@ -6,4 +6,5 @@ pub struct Import {
     pub alias: Option<String>,
     pub line: usize,
     pub is_external: bool,
+    pub file_path: String,
 }
