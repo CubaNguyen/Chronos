@@ -1,0 +1,146 @@
+{
+  "file": {
+    "path": "testdata/sample.go",
+    "language": "go",
+    "hash": "c00777c7c0924ef96de9774144965c3cfd1840b150cee4dda630a801e8bc7c3f",
+    "size_bytes": 545,
+    "line_count": 31
+  },
+  "classes": [
+    {
+      "name": "UserService",
+      "kind": "struct",
+      "visibility": "public",
+      "extends": null,
+      "implements": [],
+      "line_start": 9,
+      "line_end": 13,
+      "file_path": "testdata/sample.go"
+    },
+    {
+      "name": "Reader",
+      "kind": "interface",
+      "visibility": "public",
+      "extends": null,
+      "implements": [],
+      "line_start": 15,
+      "line_end": 17,
+      "file_path": "testdata/sample.go"
+    }
+  ],
+  "functions": [
+    {
+      "name": "Add",
+      "class_name": null,
+      "params": [
+        {
+          "name": "a",
+          "type_name": "int"
+        },
+        {
+          "name": "b",
+          "type_name": "int"
+        }
+      ],
+      "return_type": "int",
+      "visibility": "public",
+      "line_start": 19,
+      "line_end": 21,
+      "file_path": "testdata/sample.go"
+    },
+    {
+      "name": "GetUser",
+      "class_name": "UserService",
+      "params": [
+        {
+          "name": "id",
+          "type_name": "int"
+        }
+      ],
+      "return_type": "(*User, error)",
+      "visibility": "public",
+      "line_start": 23,
+      "line_end": 27,
+      "file_path": "testdata/sample.go"
+    },
+    {
+      "name": "helper",
+      "class_name": "UserService",
+      "params": [],
+      "return_type": null,
+      "visibility": "private",
+      "line_start": 29,
+      "line_end": 31,
+      "file_path": "testdata/sample.go"
+    }
+  ],
+  "fields": [
+    {
+      "name": "db",
+      "type_name": "*sql.DB",
+      "visibility": "private",
+      "class_name": "UserService",
+      "line": 10,
+      "file_path": "testdata/sample.go"
+    },
+    {
+      "name": "cache",
+      "type_name": "*mycache.Cache",
+      "visibility": "private",
+      "class_name": "UserService",
+      "line": 11,
+      "file_path": "testdata/sample.go"
+    },
+    {
+      "name": "name",
+      "type_name": "string",
+      "visibility": "private",
+      "class_name": "UserService",
+      "line": 12,
+      "file_path": "testdata/sample.go"
+    }
+  ],
+  "calls": [
+    {
+      "caller": "UserService.GetUser",
+      "callee": "s.db.Query",
+      "line": 24,
+      "file_path": "testdata/sample.go"
+    },
+    {
+      "caller": "UserService.GetUser",
+      "callee": "fmt.Println",
+      "line": 25,
+      "file_path": "testdata/sample.go"
+    },
+    {
+      "caller": "UserService.helper",
+      "callee": "s.GetUser",
+      "line": 30,
+      "file_path": "testdata/sample.go"
+    }
+  ],
+  "imports": [
+    {
+      "module_path": "database/sql",
+      "alias": null,
+      "line": 4,
+      "is_external": false,
+      "file_path": "testdata/sample.go"
+    },
+    {
+      "module_path": "fmt",
+      "alias": null,
+      "line": 5,
+      "is_external": false,
+      "file_path": "testdata/sample.go"
+    },
+    {
+      "module_path": "github.com/myorg/cache",
+      "alias": "mycache",
+      "line": 6,
+      "is_external": true,
+      "file_path": "testdata/sample.go"
+    }
+  ]
+}

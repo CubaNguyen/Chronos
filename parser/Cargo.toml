@@ -6,6 +6,8 @@ description = "Source code parser for Chronos — extracts AST from multiple lan
 license = "MIT"
 
 [dependencies]
+walkdir = "2"                   
+
 # ─── Tree-sitter: parse code ───────────────────────────
 tree-sitter = "0.24"
 tree-sitter-go = "0.23"
@@ -35,3 +37,4 @@ tracing-subscriber = "0.3"
 [dev-dependencies]
 # Test helpers
 pretty_assertions = "1"
+

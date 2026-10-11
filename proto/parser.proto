@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+package chronos.parser.v1;
+
+option go_package = "github.com/yourusername/chronos/core/pkg/contracts/parser/v1;parserv1";
+
+// ─── Service ─────────────────────────────────────────────
+
+service ParserService {
+  // Parse 1 file source code → AST.
+  // Input: path (để detect language) + source (đã được đọc sẵn).
+  // Output: Ast nếu success, error string nếu parse fail (syntax error).
+  // System error (I/O, panic) → trả về gRPC status code INTERNAL.
+  rpc ParseFile(ParseFileRequest) returns (ParseFileResponse);
+}
+
+// ─── Request / Response ──────────────────────────────────
+
+message ParseFileRequest {
+  string path = 1;     // vd: "src/user.go" — Rust tự detect language
+  string source = 2;   // nội dung file — Go core đọc, không phải Rust
+}
+
+message ParseFileResponse {
+  Ast ast = 1;         // set nếu parse OK
+  string error = 2;    // non-empty nếu parse fail (syntax error)
+}
+
+// ─── AST ─────────────────────────────────────────────────
+
+message Ast {
+  FileInfo file = 1;
+  repeated Class classes = 2;
+  repeated Function functions = 3;
+  repeated Field fields = 4;
+  repeated Call calls = 5;
+  repeated Import imports = 6;
+}
+
+message FileInfo {
+  string path = 1;
+  string language = 2;
+  string hash = 3;
+  int64 size_bytes = 4;
+  int32 line_count = 5;
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+enum ClassKind {
+  CLASS_KIND_UNSPECIFIED = 0;
+  CLASS_KIND_CLASS = 1;
+  CLASS_KIND_STRUCT = 2;
+  CLASS_KIND_INTERFACE = 3;
+  CLASS_KIND_ENUM = 4;
+  CLASS_KIND_TRAIT = 5;
+}
+
+enum Visibility {
+  VISIBILITY_UNSPECIFIED = 0;
+  VISIBILITY_PUBLIC = 1;
+  VISIBILITY_PRIVATE = 2;
+  VISIBILITY_PROTECTED = 3;
+  VISIBILITY_PACKAGE = 4;
+}
+
+// ─── Entities ────────────────────────────────────────────
+
+message Class {
+  string name = 1;
+  ClassKind kind = 2;
+  Visibility visibility = 3;
+  optional string extends = 4;
+  repeated string implements = 5;
+  int32 line_start = 6;
+  int32 line_end = 7;
+  string file_path = 8;
+}
+
+message Function {
+  string name = 1;
+  optional string class_name = 2;   // null nếu free function
+  repeated Param params = 3;
+  optional string return_type = 4;
+  Visibility visibility = 5;
+  int32 line_start = 6;
+  int32 line_end = 7;
+  string file_path = 8;
+}
+
+message Param {
+  string name = 1;
+  string type_name = 2;
+}
+
+message Field {
+  string name = 1;
+  string type_name = 2;
+  Visibility visibility = 3;
+  optional string class_name = 4;
+  int32 line = 5;
+  string file_path = 6;
+}
+
+message Call {
+  string caller = 1;
+  string callee = 2;
+  int32 line = 3;
+  string file_path = 4;
+}
+
+message Import {
+  string module_path = 1;
+  optional string alias = 2;
+  int32 line = 3;
+  bool is_external = 4;
+  string file_path = 5;
+}
