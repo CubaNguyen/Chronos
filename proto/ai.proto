@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package chronos.ai.v1;
+
+option go_package = "github.com/yourusername/chronos/core/pkg/contracts/ai/v1;aiv1";
+
+// ─── Service ─────────────────────────────────────────────
+
+service AIService {
+  // Text → vector embedding (384d, all-MiniLM-L6-v2).
+  // Batch: nhiều texts 1 lần, nhanh hơn loop.
+  rpc Embed(EmbedRequest) returns (EmbedResponse);
+
+  // Query → top-K similar chunks (chưa qua LLM).
+  // Dùng khi Go core muốn semantic search thô.
+  rpc Retrieve(RetrieveRequest) returns (RetrieveResponse);
+
+  // Full RAG: query → retrieve → LLM → answer + citations.
+  // Business errors (no context, LLM fail) → error field.
+  // System errors (service down) → gRPC status INTERNAL/UNAVAILABLE.
+  rpc Query(QueryRequest) returns (QueryResponse);
+}
+
+// ─── Embed ───────────────────────────────────────────────
+
+message EmbedRequest {
+  repeated string texts = 1;   // batch texts
+}
+
+message EmbedResponse {
+  repeated Vector vectors = 1; // 1-1 với texts trong request
+  string error = 2;            // non-empty nếu embed fail
+}
+
+message Vector {
+  repeated float values = 1;   // 384 floats, cosine-normalized
+}
+
+// ─── Retrieve ────────────────────────────────────────────
+
+message RetrieveRequest {
+  string query = 1;            // câu hỏi tự nhiên
+  int32 top_k = 2;             // 0 → default 5
+  float min_score = 3;         // 0.0 → default 0.3
+}
+
+message RetrieveResponse {
+  repeated ScoredChunk results = 1;
+  string error = 2;            // non-empty nếu retrieve fail
+}
+
+message ScoredChunk {
+  Chunk chunk = 1;
+  float score = 2;             // cosine similarity [-1, 1]
+}
+
+// ─── Query (RAG) ─────────────────────────────────────────
+
+message QueryRequest {
+  string question = 1;
+  int32 top_k = 2;             // 0 → default 5
+  float min_score = 3;         // 0.0 → default 0.3
+}
+
+message QueryResponse {
+  string answer = 1;           // LLM answer
+  repeated ScoredChunk sources = 2;
+  string query = 3;            // echo back question
+  float duration_seconds = 4;
+  bool no_context = 5;         // true nếu không đủ context → không gọi LLM
+  string error = 6;            // non-empty nếu system error
+}
+
+// ─── Shared ──────────────────────────────────────────────
+
+message Chunk {
+  string id = 1;
+  string text = 2;
+  string source_type = 3;              // "function" | "method" | "class"
+  string source_path = 4;
+  map<string, string> metadata = 5;    // flat map — ChromaDB compatible
+}
