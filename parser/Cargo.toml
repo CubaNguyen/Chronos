@@ -6,35 +6,48 @@ description = "Source code parser for Chronos — extracts AST from multiple lan
 license = "MIT"
 
 [dependencies]
-walkdir = "2"                   
+walkdir = "2"
 
-# ─── Tree-sitter: parse code ───────────────────────────
+# ─── Tree-sitter ───────────────────────────────────────
 tree-sitter = "0.24"
 tree-sitter-go = "0.23"
-# tree-sitter-java = "0.23"    # TODO: bật sau khi Go xong
-# tree-sitter-python = "0.23"  # TODO: bật sau khi Go xong
 
 # ─── CLI ───────────────────────────────────────────────
 clap = { version = "4", features = ["derive"] }
 
-# ─── Serialization: in JSON ra stdout ──────────────────
+# ─── Serialization ─────────────────────────────────────
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 # ─── Error handling ────────────────────────────────────
 thiserror = "2"
 
-# ─── Hashing: SHA-256 cho file content ─────────────────
+# ─── Hashing ───────────────────────────────────────────
 sha2 = "0.10"
-
-# ─── Hex encoding cho hash ─────────────────────────────
 hex = "0.4"
 
-# ─── Logging (optional, dùng ở main.rs) ────────────────
+# ─── Logging ───────────────────────────────────────────
 tracing = "0.1"
-tracing-subscriber = "0.3"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# ─── gRPC stack ────────────────────────────────────────
+tonic = "0.14"
+tonic-prost = "0.14"
+tonic-reflection = "0.14"    
+prost = "0.14"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
+
+[build-dependencies]
+cc = "1"
+tonic-prost-build = "0.14"
 
 [dev-dependencies]
-# Test helpers
 pretty_assertions = "1"
 
+[[bin]]
+name = "chronos-parser"
+path = "src/main.rs"
+
+[[bin]]
+name = "parser-server"
+path = "src/bin/parser_server.rs"
