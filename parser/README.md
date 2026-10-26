@@ -1,189 +1,94 @@
-# 🧠 Chronos Parser
+# Chronos Parser
 
-> Rust sidecar of the Chronos system. Parses source code into a normalized AST that the Go core can ingest into a Knowledge Graph.
+Rust sidecar of the Chronos system. Parses source code into a normalized AST and exposes it via gRPC.
 
----
+## Purpose
 
-## 🎯 Purpose
+Chronos is a Code Knowledge Graph combined with AI. This parser is the **first stage** of the pipeline: it reads source code and produces structured AST that downstream modules consume.
 
-Chronos is a **Code Knowledge Graph** combined with AI. It answers two questions:
+It is a **stateless compute service**. The Go core owns all business logic and databases.
 
-| # | Question | Feature |
-| :-: | :--- | :--- |
-| 1 | *"Why is this code like this?"* | 🔍 Context Tracing |
-| 2 | *"If I change this, what breaks?"* | 💥 Impact Analysis |
-
-This parser is the **first stage** of the pipeline: it reads source code and produces structured AST that downstream modules (Graph, Vector, AI) consume.
-
----
-
-## 📊 Status
+## Status
 
 | Area | Status |
 | :--- | :--- |
-| 🟢 Go parser | Working (5/5 entities extracted) |
-| 🔴 Java parser | Not implemented |
-| 🔴 Python parser | Not implemented |
-| 🔴 Rust parser | Not implemented |
-| 🔴 TypeScript parser | Not implemented |
-| 🟢 CLI | Working |
-| 🟡 gRPC server | Not implemented (next milestone) |
-| 🔴 Parallel parsing | Not implemented |
-| 🔴 Interface methods | Not extracted |
-| 🔴 Const/var declarations | Not extracted |
-| 🔴 Generics type params | Not extracted |
+| **F1 — Parse Go** | ✅ Working (5/5 entities extracted) |
+| **gRPC Server** | ✅ Working (port 50051) |
+| **gRPC Reflection** | ✅ Working (testable via `grpcurl`) |
+| **CLI** | ✅ Working |
+| **Java/Python/Rust/TS parsers** | ❌ Not implemented |
+| **Parallel parsing** | ❌ Not implemented |
+| **Interface methods extract** | ❌ Not implemented |
 
-> 📌 See **[TODO.md](./TODO.md)** for the full backlog.
+See [`TODO.md`](./TODO.md) for the full backlog.
 
----
+## Architecture
 
-## ⚙️ How it works
+       ┌────────────────┐
+File ──│ detector.rs    │──▶ Language (Go / Java / Python / Rust / TS)
+       └────────────────┘
+              │
+              ▼
+       ┌────────────────┐
+       │ factory.rs     │──▶ Box<dyn LanguageParser>
+       └────────────────┘
+              │
+              ▼
+       ┌────────────────┐
+       │ providers/go.rs│──▶ Tree-sitter parse → walk AST → extract entities
+       └────────────────┘
+              │
+              ▼
+       ┌────────────────┐     ┌────────────────┐
+       │ ast::Ast       │────▶│ gRPC Server    │──▶ Go Core
+       └────────────────┘     └────────────────┘
 
-    File
-      │
-      ▼
-    ┌────────────────┐
-    │  detector.rs   │──▶  Language (Go / Java / Python / Rust / TS)
-    └────────────────┘
-      │
-      ▼
-    ┌────────────────┐
-    │  factory.rs    │──▶  Box<dyn LanguageParser>
-    └────────────────┘
-      │
-      ▼
-    ┌─────────────────────────┐
-    │  providers/go.rs        │──▶  Tree-sitter parse → walk AST → extract entities
-    └─────────────────────────┘
-      │
-      ▼
-    ┌────────────────┐
-    │   ast::Ast     │──▶  normalized output (JSON)
-    └────────────────┘
+## gRPC Interface
 
----
+The server implements `chronos.parser.v1.ParserService`.
 
-## 🌳 AST Model
+- **Method:** `ParseFile(ParseFileRequest) returns (ParseFileResponse)`
+- **Input:** `path` (string), `source` (string)
+- **Output:** `ast` (protobuf Ast), `error` (string, if parse failed)
 
-The output is **normalized** — same structure regardless of source language.
+## Usage
 
-    Ast
-    ├── file: FileInfo           — path, language, SHA-256 hash, size, line count
-    ├── classes: Vec<Class>      — struct, interface, class, enum, trait
-    ├── functions: Vec<Function> — free functions + methods (distinguished by class_name)
-    ├── fields: Vec<Field>       — struct/class fields (flat list, class_name points to owner)
-    ├── calls: Vec<Call>         — caller → callee edges (raw names, resolved by Go core)
-    └── imports: Vec<Import>     — module path, alias, is_external
+### 1. Run gRPC Server (Port 50051)
 
-**💡 Design principle:** Flat, not nested. Everything is a top-level list. Relationships are expressed via foreign-key-like fields (`class_name`, `caller`, `file_path`). This maps **1:1 to Neo4j** nodes/edges with zero transformation logic.
+    cargo run --bin parser_server
 
-> 📂 See `src/ast/` for the full schema.
+### 2. Test with grpcurl (Windows PowerShell)
 
----
+    # List services
+    grpcurl -plaintext localhost:50051 list
 
-## 🖥️ CLI Usage
+    # Call method (note the --% to bypass PowerShell parsing)
+    grpcurl --% -plaintext -d "{\"path\":\"test.go\",\"source\":\"package main\n\nfunc Add(a, b int) int { return a + b }\"}" localhost:50051 chronos.parser.v1.ParserService/ParseFile
 
-**Parse a single file (pretty JSON):**
+### 3. Run CLI (Direct JSON output)
 
     cargo run -- parse testdata/sample.go
 
-**Parse a single file (compact JSON, single line):**
-
-    cargo run -- parse testdata/sample.go --compact
-
-**Parse a directory recursively (pretty JSON array):**
-
-    cargo run -- parse testdata/
-
-**Help:**
-
-    cargo run -- --help
-    cargo run -- parse --help
-
-### 🎬 Behavior
-
-- ✅ Files with unsupported extensions are **skipped silently**
-- ⚠️ Files that fail to parse log a warning to stderr but **don't crash**
-- 🚫 Hidden files/dirs (`.git`, `.env`) and build dirs (`target/`, `node_modules/`) are skipped
-- 📤 Exit code `0` on success, `1` on error
-
----
-
-## 🛠️ Development
-
-### 📋 Prerequisites
-
-- 🦀 Rust **1.75+** (install via [rustup](https://rustup.rs))
-- 🔧 C compiler (`cc`) for compiling Tree-sitter grammars
-
-### 🚀 Setup
-
-    cd parser
-    cargo build
-    cargo test
-
-### 📁 Project layout
+## Project layout
 
     parser/
+    ├── build.rs                    — Compile proto + generate descriptor
+    ├── proto/                      — (Symlink/Copy from root proto/)
     ├── src/
-    │   ├── main.rs                  — CLI entry point
-    │   ├── lib.rs                   — public API
-    │   ├── error.rs                 — ParserError type
-    │   ├── detector.rs              — extension → Language
-    │   ├── ast/                     — domain model (language-agnostic)
-    │   │   ├── file.rs              — FileInfo
-    │   │   ├── class.rs             — Class, ClassKind, Field, Visibility
-    │   │   ├── function.rs          — Function, Param
-    │   │   ├── call.rs              — Call
-    │   │   └── import.rs            — Import
-    │   └── lang/
-    │       ├── interface.rs         — LanguageParser trait
-    │       ├── factory.rs           — Language → parser dispatch
-    │       └── providers/
-    │           ├── go.rs            — Go parser (Tree-sitter)
-    │           ├── java.rs          — stub
-    │           └── python.rs        — stub
-    ├── tests/
-    │   └── go_parser.rs             — integration tests
-    ├── testdata/                    — sample Go files for manual testing
-    ├── Cargo.toml
-    ├── README.md                    — this file
-    └── TODO.md                      — remaining work
+    │   ├── main.rs                 — CLI entry point
+    │   ├── bin/parser_server.rs    — gRPC server entry point
+    │   ├── lib.rs                  — public API
+    │   ├── ast/                    — domain model
+    │   ├── lang/                   — language providers
+    │   └── grpc/                   — gRPC generated code + conversion + service
 
-### 🧪 Running tests
-
-    cargo test                    # all tests
-    cargo test --test go_parser   # only parser integration tests
-    cargo test detector           # only detector tests
-
-### ➕ Adding a new language
-
-1. Add Tree-sitter grammar to `Cargo.toml`:
-
-       tree-sitter-java = "0.23"
-
-2. Implement `LanguageParser` in `src/lang/providers/java.rs`
-3. Register in `src/lang/factory.rs`
-4. Add integration tests in `tests/java_parser.rs`
-
----
-
-## 📦 Dependencies
+## Dependencies
 
 | Crate | Purpose |
 | :--- | :--- |
-| 🌲 `tree-sitter` | Parser engine |
-| 🐹 `tree-sitter-go` | Go grammar |
-| ⌨️ `clap` | CLI argument parsing |
-| 📄 `serde` + `serde_json` | JSON output |
-| ⚠️ `thiserror` | Error type definition |
-| 🔐 `sha2` + `hex` | SHA-256 hashing |
-| 🚶 `walkdir` | Recursive directory traversal |
-
----
-
-## 🔗 Links
-
-- 📐 Architecture doc: `../../docs/02-architecture.md`
-- 🗺️ Roadmap: `../../docs/05-roadmap.md`
-- 📌 TODO: `TODO.md`
+| `tree-sitter` | Parser engine |
+| `tonic` / `prost` | gRPC + Protobuf |
+| `tokio` | Async runtime |
+| `clap` | CLI argument parsing |
+| `serde` / `serde_json` | JSON output |
+| `sha2` / `hex` | SHA-256 hashing |
