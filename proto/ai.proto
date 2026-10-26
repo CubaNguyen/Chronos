@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package chronos.ai.v1;
 
-option go_package = "github.com/yourusername/chronos/core/pkg/contracts/ai/v1;aiv1";
+option go_package = "github.com/cuba3/chronos/core/pkg/contracts/ai/v1;aiv1";
 
 // ─── Service ─────────────────────────────────────────────
 

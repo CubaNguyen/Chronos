@@ -2,7 +2,9 @@ syntax = "proto3";
 
 package chronos.parser.v1;
 
-option go_package = "github.com/yourusername/chronos/core/pkg/contracts/parser/v1;parserv1";
+option go_package = "github.com/cuba3/chronos/core/pkg/contracts/parser/v1;parserv1";
+
+
 
 // ─── Service ─────────────────────────────────────────────
 
