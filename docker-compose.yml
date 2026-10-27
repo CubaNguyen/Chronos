@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: chronos_postgres
+    environment:
+      POSTGRES_USER: chronos
+      POSTGRES_PASSWORD: chronos_password
+      POSTGRES_DB: chronos_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # Tự động chạy file này khi DB khởi tạo lần đầu
+
+volumes:
+  postgres_data:

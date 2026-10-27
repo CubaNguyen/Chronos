@@ -1,42 +1,47 @@
+// internal/config/config.go
 package config
 
 import (
-	"log"
-	"os"
+	"fmt"
+	"time"
 
-	"github.com/joho/godotenv"
+	"github.com/caarlos0/env/v11"
 )
 
 type Config struct {
-	Port          string
-	ParserAddress string
-	AIAddress     string
+	AppEnv string `env:"APP_ENV" envDefault:"development"`
+	HTTP   HTTPConfig
+	GRPC   GRPCConfig
+	DB     DBConfig
+	NATS   NATSConfig
 }
 
-func Load() *Config {
-	// Tự động load file .env nếu có
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using default environment variables")
-	}
+type HTTPConfig struct {
+	Port         string        `env:"HTTP_PORT" envDefault:"8080"`
+	ReadTimeout  time.Duration `env:"HTTP_READ_TIMEOUT" envDefault:"10s"`
+	WriteTimeout time.Duration `env:"HTTP_WRITE_TIMEOUT" envDefault:"10s"`
+}
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080" // Default port cho Go API
-	}
+type GRPCConfig struct {
+	RustParserAddr string `env:"RUST_PARSER_ADDR" envDefault:"localhost:50051"`
+	PythonAIAddr   string `env:"PYTHON_AI_ADDR" envDefault:"localhost:50052"`
+}
 
-	parserAddr := os.Getenv("PARSER_ADDRESS")
-	if parserAddr == "" {
-		parserAddr = "localhost:50051"
-	}
+type DBConfig struct {
+	PostgresURL string `env:"POSTGRES_URL" envDefault:"postgres://chronos:chronos_password@localhost:5432/chronos_db"`
+	Neo4jURL    string `env:"NEO4J_URL" envDefault:"bolt://localhost:7687"`
+}
 
-	aiAddr := os.Getenv("AI_ADDRESS")
-	if aiAddr == "" {
-		aiAddr = "localhost:50052"
-	}
+type NATSConfig struct {
+	URL string `env:"NATS_URL" envDefault:"nats://localhost:4222"`
+}
 
-	return &Config{
-		Port:          port,
-		ParserAddress: parserAddr,
-		AIAddress:     aiAddr,
+// Load đọc config và validate
+func Load() (*Config, error) {
+	cfg := &Config{}
+	if err := env.Parse(cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
+	// Thêm logic validate nếu cần (vd: check xem URL có bị rỗng không)
+	return cfg, nil
 }
