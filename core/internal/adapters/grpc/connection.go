@@ -20,9 +20,9 @@ func NewAIConn(addr string) (*grpc.ClientConn, error) {
 
 func createGRPCConn(addr string) (*grpc.ClientConn, error) {
 	kaParams := keepalive.ClientParameters{
-		Time:                10 * time.Second,
-		Timeout:             3 * time.Second,
-		PermitWithoutStream: true,
+		Time:                1 * time.Minute,
+		Timeout:             5 * time.Second,
+		PermitWithoutStream: false,
 	}
 
 	conn, err := grpc.NewClient(

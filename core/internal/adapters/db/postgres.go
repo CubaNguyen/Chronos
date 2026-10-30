@@ -46,15 +46,20 @@ func (r *PostgresRepo) SaveEmbeddings(ctx context.Context, items []port.CodeEmbe
 	return nil
 }
 
-func (r *PostgresRepo) SearchSimilar(ctx context.Context, queryEmbedding []float32, limit int) ([]port.CodeEmbedding, error) {
+func (r *PostgresRepo) SearchSimilar(ctx context.Context, repoName string, queryEmbedding []float32, limit int) ([]port.CodeEmbedding, error) {
+	// 🚨 Chú ý điều kiện WHERE repo_name = $1
 	query := `
-		SELECT id, repo_name, file_path, language, function_name, content, commit_hash
+		SELECT id, repo_name, file_path, language, function_name, content, commit_hash, metadata
 		FROM code_embeddings
-		ORDER BY embedding <=> $1
-		LIMIT $2
+		WHERE ($1 = '' OR repo_name = $1)
+		ORDER BY embedding <=> $2
+		LIMIT $3
 	`
+
 	vec := pgvector.NewVector(queryEmbedding)
-	rows, err := r.pool.Query(ctx, query, vec, limit)
+
+	// Truyền tham số tương ứng với $1, $2, $3
+	rows, err := r.pool.Query(ctx, query, repoName, vec, limit)
 	if err != nil {
 		return nil, fmt.Errorf("lỗi truy vấn vector: %w", err)
 	}
@@ -63,7 +68,10 @@ func (r *PostgresRepo) SearchSimilar(ctx context.Context, queryEmbedding []float
 	var results []port.CodeEmbedding
 	for rows.Next() {
 		var item port.CodeEmbedding
-		err := rows.Scan(&item.ID, &item.RepoName, &item.FilePath, &item.Language, &item.FunctionName, &item.Content, &item.CommitHash)
+		err := rows.Scan(
+			&item.ID, &item.RepoName, &item.FilePath, &item.Language,
+			&item.FunctionName, &item.Content, &item.CommitHash, &item.Metadata,
+		)
 		if err != nil {
 			return nil, err
 		}

@@ -18,5 +18,5 @@ type CodeEmbedding struct {
 // 2. Interface (Hợp đồng)
 type VectorRepository interface {
 	SaveEmbeddings(ctx context.Context, items []CodeEmbedding) error
-	SearchSimilar(ctx context.Context, queryEmbedding []float32, limit int) ([]CodeEmbedding, error)
+	SearchSimilar(ctx context.Context, repoName string, queryEmbedding []float32, limit int) ([]CodeEmbedding, error)
 }

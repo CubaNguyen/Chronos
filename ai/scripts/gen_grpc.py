@@ -20,7 +20,7 @@ def main() -> None:
         print(f"No .proto files found in {PROTO_DIR}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Generating {len(proto_files)} proto file(s) → {OUT_DIR}")
+    print(f"Generating {len(proto_files)} proto file(s) -> {OUT_DIR}")
 
     cmd = [
         sys.executable, "-m", "grpc_tools.protoc",
@@ -34,14 +34,17 @@ def main() -> None:
 
     # Fix relative imports trong file _grpc.py
     for grpc_file in OUT_DIR.glob("*_pb2_grpc.py"):
-        content = grpc_file.read_text()
-        # import ai_pb2 → from . import ai_pb2
+        content = grpc_file.read_text(encoding="utf-8")
+        # import ai_pb2 -> from . import ai_pb2
         fixed = content.replace(
             "import ai_pb2 as ai__pb2",
             "from . import ai_pb2 as ai__pb2"
+        ).replace(
+            "import parser_pb2 as parser__pb2",
+            "from . import parser_pb2 as parser__pb2"
         )
         if fixed != content:
-            grpc_file.write_text(fixed)
+            grpc_file.write_text(fixed, encoding="utf-8")
             print(f"  Fixed import in {grpc_file.name}")
 
     print("Done.")
