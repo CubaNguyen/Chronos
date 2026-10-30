@@ -31,21 +31,27 @@ class RAG:
         self.llm = llm
         self.min_score = min_score
 
-    def query(self, question: str, top_k: int = 5) -> RAGAnswer:
-        """Full RAG pipeline cho 1 câu hỏi."""
+    def query(
+        self,
+        question: str,
+        top_k: int = 5,
+        contexts: list[QueryResult] | None = None,
+    ) -> RAGAnswer:
+        """Full RAG pipeline cho 1 câu hỏi (ưu tiên dùng contexts nếu được truyền từ ngoài)."""
         start = time.perf_counter()
 
-        # 1. Retrieve
-        results = self.retriever.retrieve(question, top_k=top_k)
-        logger.debug("Retrieved %d chunks for query", len(results))
+        if contexts is not None:
+            relevant = contexts
+        else:
+            # Fallback nếu không truyền context từ ngoài vào:
+            results = self.retriever.retrieve(question, top_k=top_k)
+            logger.debug("Retrieved %d chunks for query", len(results))
+            relevant = [r for r in results if r.score >= self.min_score]
+            logger.debug(
+                "%d chunks passed min_score=%.2f", len(relevant), self.min_score
+            )
 
-        # 2. Filter theo min_score
-        relevant = [r for r in results if r.score >= self.min_score]
-        logger.debug(
-            "%d chunks passed min_score=%.2f", len(relevant), self.min_score
-        )
-
-        # 3. Nếu không có chunk nào đủ liên quan → trả về message cố định
+        # Nếu không có chunk nào đủ liên quan -> trả về message cố định
         if not relevant:
             duration = time.perf_counter() - start
             logger.info("No relevant context found for query")

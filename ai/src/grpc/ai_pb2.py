@@ -24,14 +24,14 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x08\x61i.proto\x12\rchronos.ai.v1\"\x1d\n\x0c\x45mbedRequest\x12\r\n\x05texts\x18\x01 \x03(\t\"F\n\rEmbedResponse\x12&\n\x07vectors\x18\x01 \x03(\x0b\x32\x15.chronos.ai.v1.Vector\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"\x18\n\x06Vector\x12\x0e\n\x06values\x18\x01 \x03(\x02\"B\n\x0fRetrieveRequest\x12\r\n\x05query\x18\x01 \x01(\t\x12\r\n\x05top_k\x18\x02 \x01(\x05\x12\x11\n\tmin_score\x18\x03 \x01(\x02\"N\n\x10RetrieveResponse\x12+\n\x07results\x18\x01 \x03(\x0b\x32\x1a.chronos.ai.v1.ScoredChunk\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"A\n\x0bScoredChunk\x12#\n\x05\x63hunk\x18\x01 \x01(\x0b\x32\x14.chronos.ai.v1.Chunk\x12\r\n\x05score\x18\x02 \x01(\x02\"B\n\x0cQueryRequest\x12\x10\n\x08question\x18\x01 \x01(\t\x12\r\n\x05top_k\x18\x02 \x01(\x05\x12\x11\n\tmin_score\x18\x03 \x01(\x02\"\x98\x01\n\rQueryResponse\x12\x0e\n\x06\x61nswer\x18\x01 \x01(\t\x12+\n\x07sources\x18\x02 \x03(\x0b\x32\x1a.chronos.ai.v1.ScoredChunk\x12\r\n\x05query\x18\x03 \x01(\t\x12\x18\n\x10\x64uration_seconds\x18\x04 \x01(\x02\x12\x12\n\nno_context\x18\x05 \x01(\x08\x12\r\n\x05\x65rror\x18\x06 \x01(\t\"\xb2\x01\n\x05\x43hunk\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04text\x18\x02 \x01(\t\x12\x13\n\x0bsource_type\x18\x03 \x01(\t\x12\x13\n\x0bsource_path\x18\x04 \x01(\t\x12\x34\n\x08metadata\x18\x05 \x03(\x0b\x32\".chronos.ai.v1.Chunk.MetadataEntry\x1a/\n\rMetadataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x32\xe0\x01\n\tAIService\x12\x42\n\x05\x45mbed\x12\x1b.chronos.ai.v1.EmbedRequest\x1a\x1c.chronos.ai.v1.EmbedResponse\x12K\n\x08Retrieve\x12\x1e.chronos.ai.v1.RetrieveRequest\x1a\x1f.chronos.ai.v1.RetrieveResponse\x12\x42\n\x05Query\x12\x1b.chronos.ai.v1.QueryRequest\x1a\x1c.chronos.ai.v1.QueryResponseB?Z=github.com/cuba3/chronos/core/pkg/contracts/ai/v1;aiv1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x08\x61i.proto\x12\rchronos.ai.v1\"\x1d\n\x0c\x45mbedRequest\x12\r\n\x05texts\x18\x01 \x03(\t\"F\n\rEmbedResponse\x12&\n\x07vectors\x18\x01 \x03(\x0b\x32\x15.chronos.ai.v1.Vector\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"\x18\n\x06Vector\x12\x0e\n\x06values\x18\x01 \x03(\x02\"B\n\x0fRetrieveRequest\x12\r\n\x05query\x18\x01 \x01(\t\x12\r\n\x05top_k\x18\x02 \x01(\x05\x12\x11\n\tmin_score\x18\x03 \x01(\x02\"N\n\x10RetrieveResponse\x12+\n\x07results\x18\x01 \x03(\x0b\x32\x1a.chronos.ai.v1.ScoredChunk\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"A\n\x0bScoredChunk\x12#\n\x05\x63hunk\x18\x01 \x01(\x0b\x32\x14.chronos.ai.v1.Chunk\x12\r\n\x05score\x18\x02 \x01(\x02\"j\n\x0cQueryRequest\x12\x10\n\x08question\x18\x01 \x01(\t\x12\r\n\x05top_k\x18\x02 \x01(\x05\x12\x11\n\tmin_score\x18\x03 \x01(\x02\x12&\n\x08\x63ontexts\x18\x04 \x03(\x0b\x32\x14.chronos.ai.v1.Chunk\"\x98\x01\n\rQueryResponse\x12\x0e\n\x06\x61nswer\x18\x01 \x01(\t\x12+\n\x07sources\x18\x02 \x03(\x0b\x32\x1a.chronos.ai.v1.ScoredChunk\x12\r\n\x05query\x18\x03 \x01(\t\x12\x18\n\x10\x64uration_seconds\x18\x04 \x01(\x02\x12\x12\n\nno_context\x18\x05 \x01(\x08\x12\r\n\x05\x65rror\x18\x06 \x01(\t\"\xb2\x01\n\x05\x43hunk\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04text\x18\x02 \x01(\t\x12\x13\n\x0bsource_type\x18\x03 \x01(\t\x12\x13\n\x0bsource_path\x18\x04 \x01(\t\x12\x34\n\x08metadata\x18\x05 \x03(\x0b\x32\".chronos.ai.v1.Chunk.MetadataEntry\x1a/\n\rMetadataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x32\xe0\x01\n\tAIService\x12\x42\n\x05\x45mbed\x12\x1b.chronos.ai.v1.EmbedRequest\x1a\x1c.chronos.ai.v1.EmbedResponse\x12K\n\x08Retrieve\x12\x1e.chronos.ai.v1.RetrieveRequest\x1a\x1f.chronos.ai.v1.RetrieveResponse\x12\x42\n\x05Query\x12\x1b.chronos.ai.v1.QueryRequest\x1a\x1c.chronos.ai.v1.QueryResponseB8Z6github.com/cuba3/chronos/core/pkg/contracts/ai/v1;aiv1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ai_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
-  _globals['DESCRIPTOR']._serialized_options = b'Z=github.com/cuba3/chronos/core/pkg/contracts/ai/v1;aiv1'
+  _globals['DESCRIPTOR']._serialized_options = b'Z6github.com/cuba3/chronos/core/pkg/contracts/ai/v1;aiv1'
   _globals['_CHUNK_METADATAENTRY']._loaded_options = None
   _globals['_CHUNK_METADATAENTRY']._serialized_options = b'8\001'
   _globals['_EMBEDREQUEST']._serialized_start=27
@@ -47,13 +47,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SCOREDCHUNK']._serialized_start=304
   _globals['_SCOREDCHUNK']._serialized_end=369
   _globals['_QUERYREQUEST']._serialized_start=371
-  _globals['_QUERYREQUEST']._serialized_end=437
-  _globals['_QUERYRESPONSE']._serialized_start=440
-  _globals['_QUERYRESPONSE']._serialized_end=592
-  _globals['_CHUNK']._serialized_start=595
-  _globals['_CHUNK']._serialized_end=773
-  _globals['_CHUNK_METADATAENTRY']._serialized_start=726
-  _globals['_CHUNK_METADATAENTRY']._serialized_end=773
-  _globals['_AISERVICE']._serialized_start=776
-  _globals['_AISERVICE']._serialized_end=1000
+  _globals['_QUERYREQUEST']._serialized_end=477
+  _globals['_QUERYRESPONSE']._serialized_start=480
+  _globals['_QUERYRESPONSE']._serialized_end=632
+  _globals['_CHUNK']._serialized_start=635
+  _globals['_CHUNK']._serialized_end=813
+  _globals['_CHUNK_METADATAENTRY']._serialized_start=766
+  _globals['_CHUNK_METADATAENTRY']._serialized_end=813
+  _globals['_AISERVICE']._serialized_start=816
+  _globals['_AISERVICE']._serialized_end=1040
 # @@protoc_insertion_point(module_scope)

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -14,5 +12,16 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql # Tự động chạy file này khi DB khởi tạo lần đầu
 
+  nats:
+    image: nats:latest
+    container_name: chronos_nats
+    command: ["-js", "-m", "8222"] # Bật JetStream (-js) và Web Monitor (-m 8222)
+    ports:
+      - "4222:4222" # Port client kết nối (Go, Rust, Python)
+      - "8222:8222" # Port HTTP Monitor (Dashboard kiểm tra sức khỏe NATS)
+    volumes:
+      - nats_data:/data
+
 volumes:
   postgres_data:
+  nats_data:

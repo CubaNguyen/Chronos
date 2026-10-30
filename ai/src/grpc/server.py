@@ -69,7 +69,24 @@ class AIServiceServicer(ai_pb2_grpc.AIServiceServicer):
 
         top_k = request.top_k if request.top_k > 0 else 5
         try:
-            answer = self.rag.query(request.question, top_k=top_k)
+            contexts = None
+            if request.contexts:
+                from src.models import Chunk, QueryResult
+                contexts = [
+                    QueryResult(
+                        chunk=Chunk(
+                            id=c.id,
+                            text=c.text,
+                            source_type=c.source_type,
+                            source_path=c.source_path,
+                            metadata=dict(c.metadata),
+                        ),
+                        score=1.0,
+                    )
+                    for c in request.contexts
+                ]
+
+            answer = self.rag.query(request.question, top_k=top_k, contexts=contexts)
             
             no_ctx = (answer.answer.strip() == NO_CONTEXT_MESSAGE)
             

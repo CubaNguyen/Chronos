@@ -60,6 +60,7 @@ message QueryRequest {
   string question = 1;
   int32 top_k = 2;             // 0 → default 5
   float min_score = 3;         // 0.0 → default 0.3
+  repeated Chunk contexts = 4; // Code contexts retrieved from Go Core's PostgreSQL
 }
 
 message QueryResponse {
