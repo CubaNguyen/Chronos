@@ -161,3 +161,81 @@ func (a *Application) Close() {
 		slog.Info("Đã đóng kết nối gRPC AI")
 	}
 }
+
+// =========================================================================
+// CLI CONTAINERS (Rút gọn cho CLI, không khởi tạo HTTP Server)
+// =========================================================================
+
+// CoreApp đại diện cho container rút gọn dành cho CLI Ask/Query
+type CoreApp struct {
+	Config       *config.Config
+	DBPool       *pgxpool.Pool
+	AIConn       *grpc.ClientConn
+	AIClient     port.AI
+	VectorRepo   port.VectorRepository
+	QueryService *query.Service
+}
+
+func NewCoreApp(cfg *config.Config) (*CoreApp, error) {
+	app := &CoreApp{Config: cfg}
+
+	// 1. Kết nối Postgres
+	pool, err := dbAdapter.NewPostgresConn(cfg.DB.PostgresURL)
+	if err != nil {
+		return nil, fmt.Errorf("khởi tạo Postgres thất bại: %w", err)
+	}
+	app.DBPool = pool
+
+	// 2. Kết nối gRPC Python AI
+	aiConn, err := grpcAdapter.NewAIConn(cfg.GRPC.PythonAIAddr)
+	if err != nil {
+		app.DBPool.Close()
+		return nil, fmt.Errorf("khởi tạo gRPC AI thất bại: %w", err)
+	}
+	app.AIConn = aiConn
+	app.AIClient = grpcAdapter.NewAIClient(aiConn)
+
+	// 3. Khởi tạo Repository và Query Service
+	app.VectorRepo = dbAdapter.NewPostgresRepo(pool)
+	app.QueryService = query.NewService(app.AIClient, app.VectorRepo)
+
+	return app, nil
+}
+
+func (a *CoreApp) Close() {
+	if a.AIConn != nil {
+		a.AIConn.Close()
+		// slog.Info("Đã đóng kết nối gRPC AI")
+	}
+	if a.DBPool != nil {
+		a.DBPool.Close()
+		// slog.Info("Đã đóng kết nối Database")
+	}
+}
+
+// IndexerApp đại diện cho container rút gọn dành cho CLI Index
+type IndexerApp struct {
+	Config           *config.Config
+	Queue            port.Queue
+	GitIngestService *ingest.GitIngestService
+}
+
+func NewIndexerApp(cfg *config.Config) (*IndexerApp, error) {
+	app := &IndexerApp{Config: cfg}
+
+	natsQueue, err := messageAdapter.NewNatsQueue(cfg.NATS.URL)
+	if err != nil {
+		return nil, fmt.Errorf("khởi tạo NATS thất bại: %w", err)
+	}
+	app.Queue = natsQueue
+	app.GitIngestService = ingest.NewGitIngestService(natsQueue)
+
+	return app, nil
+}
+
+func (a *IndexerApp) Close() {
+	if a.Queue != nil {
+		a.Queue.Close()
+		slog.Info("Đã đóng kết nối NATS")
+	}
+}
