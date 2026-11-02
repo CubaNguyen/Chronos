@@ -2,8 +2,6 @@ package worker
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"log/slog"
 
@@ -48,12 +46,8 @@ func (w *Worker) Start(ctx context.Context) error {
 
 		slog.Info("Nhận được job mới", "file", job.FilePath)
 
-		// Tạo hash từ nội dung source code để làm commit/content hash độc nhất
-		hash := sha256.Sum256([]byte(job.SourceCode))
-		contentHash := hex.EncodeToString(hash[:])
-
 		// 3. Gọi Core Logic xử lý (truyền contentHash)
-		err := w.ingestService.ProcessFile(ctx, job.RepoName, job.FilePath, job.Language, job.SourceCode, contentHash)
+		err := w.ingestService.ProcessFile(ctx, job.RepoName, job.FilePath, job.Language, job.SourceCode, job.CommitHash)
 
 		if err != nil {
 			slog.Error("Xử lý job thất bại", "error", err)

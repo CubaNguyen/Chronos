@@ -7,6 +7,7 @@ type Job struct {
 	FilePath   string `json:"file_path"`
 	Language   string `json:"language"`
 	SourceCode string `json:"source_code"`
+	CommitHash string `json:"commit_hash"`
 }
 
 // Queue định nghĩa hợp đồng gửi/nhận message
