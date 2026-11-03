@@ -22,6 +22,21 @@ services:
     volumes:
       - nats_data:/data
 
+  neo4j:
+    image: neo4j:5-community
+    container_name: chronos_neo4j
+    ports:
+      - "7474:7474" # HTTP Browser UI (giao diện đồ họa http://localhost:7474)
+      - "7687:7687" # Bolt protocol (dành cho Go, Python kết nối)
+    environment:
+      - NEO4J_AUTH=none # Tắt mật khẩu cho môi trường dev (kết nối bolt://localhost:7687 trực tiếp)
+      - NEO4J_PLUGINS=["apoc"] # Hỗ trợ thư viện APOC tiện ích cho đồ thị
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+
 volumes:
   postgres_data:
   nats_data:
+  neo4j_data:
+  neo4j_logs:

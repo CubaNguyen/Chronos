@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from . import ai_pb2 as ai__pb2
+from src.grpc import ai_pb2 as ai__pb2
 
 GRPC_GENERATED_VERSION = '1.84.0'
 GRPC_VERSION = grpc.__version__
@@ -46,7 +46,7 @@ class AIServiceStub:
                 request_serializer=ai__pb2.RetrieveRequest.SerializeToString,
                 response_deserializer=ai__pb2.RetrieveResponse.FromString,
                 _registered_method=True)
-        self.Query = channel.unary_unary(
+        self.Query = channel.unary_stream(
                 '/chronos.ai.v1.AIService/Query',
                 request_serializer=ai__pb2.QueryRequest.SerializeToString,
                 response_deserializer=ai__pb2.QueryResponse.FromString,
@@ -96,7 +96,7 @@ def add_AIServiceServicer_to_server(servicer, server):
                     request_deserializer=ai__pb2.RetrieveRequest.FromString,
                     response_serializer=ai__pb2.RetrieveResponse.SerializeToString,
             ),
-            'Query': grpc.unary_unary_rpc_method_handler(
+            'Query': grpc.unary_stream_rpc_method_handler(
                     servicer.Query,
                     request_deserializer=ai__pb2.QueryRequest.FromString,
                     response_serializer=ai__pb2.QueryResponse.SerializeToString,
@@ -179,7 +179,7 @@ class AIService:
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(
+        return grpc.experimental.unary_stream(
             request,
             target,
             '/chronos.ai.v1.AIService/Query',

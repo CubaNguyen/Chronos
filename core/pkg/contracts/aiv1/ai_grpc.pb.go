@@ -37,7 +37,7 @@ type AIServiceClient interface {
 	// Full RAG: query → retrieve → LLM → answer + citations.
 	// Business errors (no context, LLM fail) → error field.
 	// System errors (service down) → gRPC status INTERNAL/UNAVAILABLE.
-	Query(ctx context.Context, in *QueryRequest, opts ...grpc.CallOption) (*QueryResponse, error)
+	Query(ctx context.Context, in *QueryRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[QueryResponse], error)
 }
 
 type aIServiceClient struct {
@@ -68,15 +68,24 @@ func (c *aIServiceClient) Retrieve(ctx context.Context, in *RetrieveRequest, opt
 	return out, nil
 }
 
-func (c *aIServiceClient) Query(ctx context.Context, in *QueryRequest, opts ...grpc.CallOption) (*QueryResponse, error) {
+func (c *aIServiceClient) Query(ctx context.Context, in *QueryRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[QueryResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(QueryResponse)
-	err := c.cc.Invoke(ctx, AIService_Query_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &AIService_ServiceDesc.Streams[0], AIService_Query_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[QueryRequest, QueryResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AIService_QueryClient = grpc.ServerStreamingClient[QueryResponse]
 
 // AIServiceServer is the server API for AIService service.
 // All implementations must embed UnimplementedAIServiceServer
@@ -91,7 +100,7 @@ type AIServiceServer interface {
 	// Full RAG: query → retrieve → LLM → answer + citations.
 	// Business errors (no context, LLM fail) → error field.
 	// System errors (service down) → gRPC status INTERNAL/UNAVAILABLE.
-	Query(context.Context, *QueryRequest) (*QueryResponse, error)
+	Query(*QueryRequest, grpc.ServerStreamingServer[QueryResponse]) error
 	mustEmbedUnimplementedAIServiceServer()
 }
 
@@ -108,8 +117,8 @@ func (UnimplementedAIServiceServer) Embed(context.Context, *EmbedRequest) (*Embe
 func (UnimplementedAIServiceServer) Retrieve(context.Context, *RetrieveRequest) (*RetrieveResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Retrieve not implemented")
 }
-func (UnimplementedAIServiceServer) Query(context.Context, *QueryRequest) (*QueryResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Query not implemented")
+func (UnimplementedAIServiceServer) Query(*QueryRequest, grpc.ServerStreamingServer[QueryResponse]) error {
+	return status.Error(codes.Unimplemented, "method Query not implemented")
 }
 func (UnimplementedAIServiceServer) mustEmbedUnimplementedAIServiceServer() {}
 func (UnimplementedAIServiceServer) testEmbeddedByValue()                   {}
@@ -168,23 +177,16 @@ func _AIService_Retrieve_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AIService_Query_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+func _AIService_Query_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(QueryRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(AIServiceServer).Query(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AIService_Query_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AIServiceServer).Query(ctx, req.(*QueryRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(AIServiceServer).Query(m, &grpc.GenericServerStream[QueryRequest, QueryResponse]{ServerStream: stream})
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AIService_QueryServer = grpc.ServerStreamingServer[QueryResponse]
 
 // AIService_ServiceDesc is the grpc.ServiceDesc for AIService service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -201,11 +203,13 @@ var AIService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "Retrieve",
 			Handler:    _AIService_Retrieve_Handler,
 		},
+	},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "Query",
-			Handler:    _AIService_Query_Handler,
+			StreamName:    "Query",
+			Handler:       _AIService_Query_Handler,
+			ServerStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "ai.proto",
 }

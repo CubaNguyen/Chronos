@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/cuba3/chronos/core/internal/port"
 )
@@ -11,41 +12,68 @@ import (
 type Service struct {
 	aiClient   port.AI
 	vectorRepo port.VectorRepository
+	graphRepo  port.GraphRepository
 }
 
-// DI: Bơm Adapter AI và VectorRepo (Postgres) vào Core
-func NewService(ai port.AI, repo port.VectorRepository) *Service {
-	return &Service{
-		aiClient:   ai,
-		vectorRepo: repo,
+func NewService(ai port.AI, repo port.VectorRepository, graph port.GraphRepository) *Service {
+	return &Service{aiClient: ai, vectorRepo: repo, graphRepo: graph}
+}
+
+func (s *Service) GetImpact(ctx context.Context, functionName string) ([]port.GraphNode, error) {
+	if functionName == "" {
+		return nil, fmt.Errorf("function name cannot be empty")
 	}
+	return s.graphRepo.GetCallers(ctx, functionName)
 }
 
-// Ask là hàm xử lý logic nghiệp vụ cho F7 (RAG tập trung dữ liệu tại Postgres)
+// Ask là phiên bản non-streaming gom toàn bộ stream lại (dùng cho REST API thông thường và CLI)
 func (s *Service) Ask(ctx context.Context, repoName string, question string) (*port.QueryResult, error) {
+	stream, err := s.AskStream(ctx, repoName, question)
+	if err != nil {
+		return nil, err
+	}
+
+	var finalResult *port.QueryResult
+	var fullAnswer strings.Builder
+
+	for res := range stream {
+		if res == nil {
+			continue
+		}
+		fullAnswer.WriteString(res.Answer)
+		finalResult = res
+	}
+
+	if finalResult == nil {
+		return nil, fmt.Errorf("không nhận được phản hồi từ AI")
+	}
+
+	finalResult.Answer = fullAnswer.String()
+	return finalResult, nil
+}
+
+func (s *Service) AskStream(ctx context.Context, repoName string, question string) (<-chan *port.QueryResult, error) {
 	if question == "" {
 		return nil, fmt.Errorf("câu hỏi không được để trống")
 	}
 
-	// 1. Gọi Python để lấy vector embedding của câu hỏi
+	// 1. Get Embedding
 	embeddings, err := s.aiClient.GetEmbeddings(ctx, []string{question})
 	if err != nil {
-		return nil, fmt.Errorf("lỗi khi tạo embedding câu hỏi: %w", err)
+		return nil, fmt.Errorf("lỗi embedding: %w", err)
 	}
 	if len(embeddings) == 0 {
-		return nil, fmt.Errorf("không nhận được vector từ AI")
+		return nil, fmt.Errorf("AI không trả về vector")
 	}
-	questionVector := embeddings[0]
 
-	// 2. Tìm kiếm các đoạn code tương đồng nhất trong Postgres
-	dbChunks, err := s.vectorRepo.SearchSimilar(ctx, repoName, questionVector, 5)
+	// 2. Search DB - lấy top 10 chunks để không bị lọt ngữ cảnh
+	dbChunks, err := s.vectorRepo.SearchSimilar(ctx, repoName, embeddings[0], 10)
 	if err != nil {
-		return nil, fmt.Errorf("lỗi khi truy vấn vector từ Postgres: %w", err)
+		return nil, fmt.Errorf("lỗi search db: %w", err)
 	}
+	slog.Info("Tìm thấy code tương đồng", "count", len(dbChunks))
 
-	slog.Info("Tìm thấy code tương đồng trong Postgres cho RAG", "count", len(dbChunks))
-
-	// 3. Chuyển đổi sang port.Chunk để gửi sang Python LLM
+	// 3. Map to Port Chunks
 	contexts := make([]port.Chunk, 0, len(dbChunks))
 	for _, c := range dbChunks {
 		meta := make(map[string]string)
@@ -53,21 +81,12 @@ func (s *Service) Ask(ctx context.Context, repoName string, question string) (*p
 			meta[k] = fmt.Sprintf("%v", v)
 		}
 		meta["name"] = c.FunctionName
-
 		contexts = append(contexts, port.Chunk{
-			ID:         c.ID,
-			Text:       c.Content,
-			SourceType: "function",
-			SourcePath: c.FilePath,
-			Metadata:   meta,
+			ID: c.ID, Text: c.Content, SourceType: "function",
+			SourcePath: c.FilePath, Metadata: meta,
 		})
 	}
 
-	// 4. Gọi sang Python AI: Đưa câu hỏi + 5 đoạn code từ Postgres để Gemini trả lời!
-	result, err := s.aiClient.Query(ctx, question, 5, 0.3, contexts)
-	if err != nil {
-		return nil, fmt.Errorf("lỗi khi truy vấn AI: %w", err)
-	}
-
-	return result, nil
+	// 4. Call Stream
+	return s.aiClient.QueryStream(ctx, question, 5, 0.3, contexts)
 }

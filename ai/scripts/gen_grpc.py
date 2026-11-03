@@ -24,13 +24,16 @@ def main() -> None:
 
     cmd = [
         sys.executable, "-m", "grpc_tools.protoc",
-        f"-I={PROTO_DIR}",
-        f"--python_out={OUT_DIR}",
-        f"--grpc_python_out={OUT_DIR}",
-        *[str(p) for p in proto_files],
+        "-I.",
+        f"--python_out={OUT_DIR.resolve()}",
+        f"--grpc_python_out={OUT_DIR.resolve()}",
+        *[p.name for p in proto_files],
     ]
 
-    subprocess.run(cmd, check=True)
+    res = subprocess.run(cmd, cwd=str(PROTO_DIR), capture_output=True, text=True)
+    if res.returncode != 0:
+        print(f"Error running protoc:\n{res.stderr}", file=sys.stderr)
+        sys.exit(res.returncode)
 
     # Fix relative imports trong file _grpc.py
     for grpc_file in OUT_DIR.glob("*_pb2_grpc.py"):
