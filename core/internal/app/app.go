@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"google.golang.org/grpc"
 
 	dbAdapter "github.com/cuba3/chronos/core/internal/adapters/db"
@@ -32,6 +33,9 @@ type Application struct {
 	Queue        port.Queue
 	Worker       *worker.Worker
 
+	Neo4jDriver neo4j.DriverWithContext
+	GraphRepo   port.GraphRepository
+
 	PipelineService  *pipeline.Service
 	QueryService     *query.Service
 	SearchService    *search.Service
@@ -46,7 +50,7 @@ type Application struct {
 func NewApplication(cfg *config.Config) (*Application, error) {
 	app := &Application{Config: cfg}
 
-	// --- 1. HẠ TẦNG (Postgres, gRPC Parser, gRPC AI, NATS) ---
+	// --- 1. HẠ TẦNG (Postgres, gRPC Parser, gRPC AI, NATS, Neo4j) ---
 	pool, err := dbAdapter.NewPostgresConn(cfg.DB.PostgresURL)
 	if err != nil {
 		return nil, err
@@ -79,15 +83,27 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 	}
 	app.Queue = natsQueue
 
+	// Khởi tạo Neo4j
+	neo4jDriver, err := dbAdapter.NewNeo4jConn(cfg.DB.Neo4jURL)
+	if err != nil {
+		app.DBPool.Close()
+		app.ParserConn.Close()
+		app.AIConn.Close()
+		app.Queue.Close()
+		return nil, fmt.Errorf("khởi tạo Neo4j thất bại: %w", err)
+	}
+	app.Neo4jDriver = neo4jDriver
+
 	// --- 2. ADAPTERS ---
 	app.VectorRepo = dbAdapter.NewPostgresRepo(pool)
+	app.GraphRepo = dbAdapter.NewNeo4jRepo(neo4jDriver)
 	app.ParserClient = grpcAdapter.NewParserClient(parserConn)
 
 	// --- 3. CORE SERVICES ---
 	app.PipelineService = pipeline.NewService(app.ParserClient)
-	app.QueryService = query.NewService(app.AIClient, app.VectorRepo)
+	app.QueryService = query.NewService(app.AIClient, app.VectorRepo, app.GraphRepo)
 	app.SearchService = search.NewService(app.AIClient, app.VectorRepo)
-	app.IngestService = ingest.NewService(app.ParserClient, app.AIClient, app.VectorRepo)
+	app.IngestService = ingest.NewService(app.ParserClient, app.AIClient, app.VectorRepo, app.GraphRepo)
 	app.GitIngestService = ingest.NewGitIngestService(app.Queue)
 
 	// Worker lắng nghe job từ NATS và điều phối qua IngestService
@@ -107,7 +123,7 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 		Handler: router,
 	}
 
-	slog.Info("Đã lắp ráp xong các Adapters, Services, NATS Queue và Worker!")
+	slog.Info("Đã lắp ráp xong các Adapters, Services, NATS Queue, Neo4j và Worker!")
 	return app, nil
 }
 
@@ -144,6 +160,10 @@ func (a *Application) Run(ctx context.Context) error {
 
 // Close là hàm dọn dẹp tài nguyên
 func (a *Application) Close() {
+	if a.Neo4jDriver != nil {
+		a.Neo4jDriver.Close(context.Background())
+		slog.Info("Đã đóng kết nối Neo4j")
+	}
 	if a.Queue != nil {
 		a.Queue.Close()
 		slog.Info("Đã đóng kết nối NATS")
@@ -174,6 +194,8 @@ type CoreApp struct {
 	AIClient     port.AI
 	VectorRepo   port.VectorRepository
 	QueryService *query.Service
+	Neo4jDriver  neo4j.DriverWithContext
+	GraphRepo    port.GraphRepository
 }
 
 func NewCoreApp(cfg *config.Config) (*CoreApp, error) {
@@ -195,14 +217,28 @@ func NewCoreApp(cfg *config.Config) (*CoreApp, error) {
 	app.AIConn = aiConn
 	app.AIClient = grpcAdapter.NewAIClient(aiConn)
 
-	// 3. Khởi tạo Repository và Query Service
+	// 3. Kết nối Neo4j
+	neo4jDriver, err := dbAdapter.NewNeo4jConn(cfg.DB.Neo4jURL)
+	if err != nil {
+		app.DBPool.Close()
+		app.AIConn.Close()
+		return nil, fmt.Errorf("khởi tạo Neo4j thất bại: %w", err)
+	}
+	app.Neo4jDriver = neo4jDriver
+	app.GraphRepo = dbAdapter.NewNeo4jRepo(neo4jDriver)
+
+	// 4. Khởi tạo Repository và Query Service
 	app.VectorRepo = dbAdapter.NewPostgresRepo(pool)
-	app.QueryService = query.NewService(app.AIClient, app.VectorRepo)
+	app.QueryService = query.NewService(app.AIClient, app.VectorRepo, app.GraphRepo)
 
 	return app, nil
 }
 
 func (a *CoreApp) Close() {
+	if a.Neo4jDriver != nil {
+		a.Neo4jDriver.Close(context.Background())
+		// slog.Info("Đã đóng kết nối Neo4j")
+	}
 	if a.AIConn != nil {
 		a.AIConn.Close()
 		// slog.Info("Đã đóng kết nối gRPC AI")

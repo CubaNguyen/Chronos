@@ -598,11 +598,11 @@ const file_ai_proto_rawDesc = "" +
 	"\bmetadata\x18\x05 \x03(\v2\".chronos.ai.v1.Chunk.MetadataEntryR\bmetadata\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x012\xe0\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x012\xe2\x01\n" +
 	"\tAIService\x12B\n" +
 	"\x05Embed\x12\x1b.chronos.ai.v1.EmbedRequest\x1a\x1c.chronos.ai.v1.EmbedResponse\x12K\n" +
-	"\bRetrieve\x12\x1e.chronos.ai.v1.RetrieveRequest\x1a\x1f.chronos.ai.v1.RetrieveResponse\x12B\n" +
-	"\x05Query\x12\x1b.chronos.ai.v1.QueryRequest\x1a\x1c.chronos.ai.v1.QueryResponseB8Z6github.com/cuba3/chronos/core/pkg/contracts/ai/v1;aiv1b\x06proto3"
+	"\bRetrieve\x12\x1e.chronos.ai.v1.RetrieveRequest\x1a\x1f.chronos.ai.v1.RetrieveResponse\x12D\n" +
+	"\x05Query\x12\x1b.chronos.ai.v1.QueryRequest\x1a\x1c.chronos.ai.v1.QueryResponse0\x01B8Z6github.com/cuba3/chronos/core/pkg/contracts/ai/v1;aiv1b\x06proto3"
 
 var (
 	file_ai_proto_rawDescOnce sync.Once

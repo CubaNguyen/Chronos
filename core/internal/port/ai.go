@@ -38,6 +38,6 @@ type AI interface {
 	// 2. Retrieve: Tìm kiếm ngữ nghĩa thô (chỉ trả về code giống nhất, chưa qua LLM)
 	Retrieve(ctx context.Context, query string, topK int, minScore float32) ([]ScoredChunk, error)
 
-	// 3. Query (RAG): Hỏi đáp thông minh (Nhận contexts từ Postgres để LLM trả lời)
-	Query(ctx context.Context, question string, topK int, minScore float32, contexts []Chunk) (*QueryResult, error)
+	// 3. Query (RAG): Hỏi đáp thông minh dạng stream (Nhận contexts từ Postgres để LLM trả lời)
+	QueryStream(ctx context.Context, question string, topK int, minScore float32, contexts []Chunk) (<-chan *QueryResult, error)
 }
