@@ -10,33 +10,138 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # Tự động chạy file này khi DB khởi tạo lần đầu
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chronos -d chronos_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - chronos_network
 
   nats:
     image: nats:latest
     container_name: chronos_nats
-    command: ["-js", "-m", "8222"] # Bật JetStream (-js) và Web Monitor (-m 8222)
+    command: ["-js", "-m", "8222"]
     ports:
-      - "4222:4222" # Port client kết nối (Go, Rust, Python)
-      - "8222:8222" # Port HTTP Monitor (Dashboard kiểm tra sức khỏe NATS)
+      - "4222:4222"
+      - "8222:8222"
     volumes:
       - nats_data:/data
+    networks:
+      - chronos_network
 
   neo4j:
     image: neo4j:5-community
     container_name: chronos_neo4j
     ports:
-      - "7474:7474" # HTTP Browser UI (giao diện đồ họa http://localhost:7474)
-      - "7687:7687" # Bolt protocol (dành cho Go, Python kết nối)
+      - "7474:7474"
+      - "7687:7687"
     environment:
-      - NEO4J_AUTH=none # Tắt mật khẩu cho môi trường dev (kết nối bolt://localhost:7687 trực tiếp)
-      - NEO4J_PLUGINS=["apoc"] # Hỗ trợ thư viện APOC tiện ích cho đồ thị
+      - NEO4J_AUTH=none
+      - NEO4J_PLUGINS=["apoc"]
     volumes:
       - neo4j_data:/data
       - neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:7474 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - chronos_network
+
+  parser:
+    image: chronos-parser:latest
+    container_name: chronos_parser
+    build:
+      context: .
+      dockerfile: parser/Dockerfile
+    ports:
+      - "50051:50051"
+    environment:
+      - CHRONOS_PARSER_PORT=50051
+      - RUST_LOG=info
+    restart: unless-stopped
+    networks:
+      - chronos_network
+
+  ai:
+    image: chronos-ai:latest
+    container_name: chronos_ai
+    build:
+      context: ./ai
+      dockerfile: Dockerfile
+    ports:
+      - "50052:50052"
+    env_file:
+      - ./ai/.env
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - CHRONOS_DATA_DIR=/app/data
+      - CHRONOS_LLM_MODEL=gemini/gemini-flash-lite-latest
+    volumes:
+      - ai_data:/app/data
+    restart: unless-stopped
+    networks:
+      - chronos_network
+
+  core:
+    image: chronos-core:latest
+    container_name: chronos_core
+    build:
+      context: ./core
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - APP_ENV=production
+      - HTTP_PORT=8080
+      - POSTGRES_URL=postgres://chronos:chronos_password@postgres:5432/chronos_db
+      - NEO4J_URL=bolt://neo4j:7687
+      - NATS_URL=nats://nats:4222
+      - RUST_PARSER_ADDR=parser:50051
+      - PYTHON_AI_ADDR=ai:50052
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+      neo4j:
+        condition: service_healthy
+      parser:
+        condition: service_started
+      ai:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - chronos_network
+
+  fe:
+    image: chronos-fe:latest
+    container_name: chronos_fe
+    build:
+      context: ./fe
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - chronos_network
 
 volumes:
   postgres_data:
   nats_data:
   neo4j_data:
   neo4j_logs:
+  ai_data:
+
+networks:
+  chronos_network:
+    driver: bridge

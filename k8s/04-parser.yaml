@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parser
+  namespace: chronos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parser
+  template:
+    metadata:
+      labels:
+        app: parser
+    spec:
+      containers:
+        - name: parser
+          image: chronos-parser:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 50051
+              name: grpc
+          env:
+            - name: CHRONOS_PARSER_PORT
+              value: "50051"
+            - name: RUST_LOG
+              value: "info"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: parser
+  namespace: chronos
+spec:
+  selector:
+    app: parser
+  ports:
+    - port: 50051
+      targetPort: 50051
+      name: grpc
+

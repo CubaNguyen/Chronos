@@ -9,6 +9,7 @@
 *.pem
 *.key
 *.cert
+k8s/00-secret.yaml
 
 # ==========================================
 # 2. Go Build Artifacts & Air Hot-Reload

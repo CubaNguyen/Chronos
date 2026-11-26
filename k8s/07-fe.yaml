@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fe
+  namespace: chronos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fe
+  template:
+    metadata:
+      labels:
+        app: fe
+    spec:
+      containers:
+        - name: fe
+          image: chronos-fe:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fe
+  namespace: chronos
+spec:
+  type: NodePort
+  selector:
+    app: fe
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30000
+      name: http
+
