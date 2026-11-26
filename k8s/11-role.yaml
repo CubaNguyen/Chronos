@@ -1,0 +1,10 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+  namespace: chronos
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services"] # Chỉ được xem Pod và Service
+    verbs: ["get", "list", "watch"] # Các quyền: xem chi tiết, liệt kê, theo dõi. Cấm xóa/sửa.
+

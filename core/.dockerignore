@@ -1,0 +1,6 @@
+tmp
+*.exe
+.air.toml
+.git
+.vscode
+

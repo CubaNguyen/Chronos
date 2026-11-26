@@ -1,0 +1,12 @@
+.git
+.vscode
+ai/.venv
+ai/__pycache__
+ai/data
+core/tmp
+core/*.exe
+fe/node_modules
+fe/dist
+parser/target
+tmp
+

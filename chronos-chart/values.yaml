@@ -1,0 +1,4 @@
+core:
+  replicaCount: 2
+  image: chronos-core:latest
+  memoryLimit: "128Mi"
